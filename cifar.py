@@ -15,7 +15,7 @@ from torch.optim.lr_scheduler import StepLR
 from torchvision import datasets, transforms
 
 # Training settings
-parser = argparse.ArgumentParser(description='PyTorch MNIST Example')
+parser = argparse.ArgumentParser(description='PyTorch CIFAR Example')
 parser.add_argument('--batch-size', type=int, default=64, metavar='N',
                     help='input batch size for training (default: 64)')
 parser.add_argument('--test-batch-size', type=int, default=1000, metavar='N',
@@ -75,7 +75,7 @@ b) optimizer (inherit from Optimizer in torch.optim, optimizer.py)
 '''
 def train(args, model, device, train_loader, loss, optimizer, epoch):
     # Create model name
-    save_name = 'mnist_{}_{}_{}_{}'.format(
+    save_name = 'cifar_{}_{}_{}_{}'.format(
             args.random_seed, args.lr, args.batch_size, args.epochs
         )
     ckpt_dir = './ckpt'
