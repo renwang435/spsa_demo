@@ -44,7 +44,7 @@ function NeuralNet_backprop(bigW,x,y,nHidden)
 			return 1
 		end
 	end
-   
+
 
 	#### Forward propagation
 	z = Array{Any}(undef,nLayers)
@@ -55,7 +55,7 @@ function NeuralNet_backprop(bigW,x,y,nHidden)
 	yhat = v'*h(z[end])
 
 	lambda = 0.01
-	r = yhat-y 
+	r = yhat-y
 	f = (1/2)r^2 + (lambda/2)*norm(v,2)^2
 
 	#### Backpropagation
@@ -249,6 +249,47 @@ function NeuralNetMulti_backprop(bigW,x,y,k,nHidden)
 	return (f,g)
 end
 
+# Compute squared error (no gradient computation)
+# for a single training example (x,y)
+# (x is assumed to be a column-vector)
+function NeuralNetMulti_forwardprop(bigW,x,y,k,nHidden)
+	d = length(x)
+	nLayers = length(nHidden)
+
+	#### Reshape 'bigW' into vectors/matrices
+	W1 = reshape(bigW[1:nHidden[1]*d],nHidden[1],d)
+	ind = nHidden[1]*d
+	Wm = Array{Any}(undef,nLayers-1)
+	for layer in 2:nLayers
+		Wm[layer-1] = reshape(bigW[ind+1:ind+nHidden[layer]*nHidden[layer-1]],nHidden[layer],nHidden[layer-1])
+		ind += nHidden[layer]*nHidden[layer-1]
+	end
+	v = bigW[ind+1:end]
+	v = reshape(v,nHidden[end],k)
+
+	#### Define activation function and its derivative
+	h(z) = tanh.(z)
+    dh(z) = (sech.(z)).^2
+
+	#### Forward propagation
+	z = Array{Any}(undef,nLayers)
+	z[1] = W1*x
+	for layer in 2:nLayers
+		z[layer] = Wm[layer-1]*h(z[layer-1])
+	end
+	yhat = v'*h(z[end])
+
+	lambda = 0.01
+	f = 0
+	for layer in 2:nLayers
+		f += (lambda/2)*norm(Wm[layer-1],2)^2
+	end
+
+	r = yhat-y
+	f += (1/2)sum(r.^2) + (lambda/2)*norm(W1,2)^2 + (lambda/2)*norm(v,2)^2
+
+	return f
+end
 
 # Computes predictions for a set of examples X
 function NeuralNet_predict(bigW,Xhat,k,nHidden)

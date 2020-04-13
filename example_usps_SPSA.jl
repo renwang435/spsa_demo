@@ -37,7 +37,7 @@ w = randn(nParams,1)
 
 # Train with mini-batch simultaneous perturbation stochastic approximation (SPSA)
 maxIter = 150000
-stepSize = 1.25e-3
+stepSize = 5e-3
 c = 5e-2
 batchSize = 20
 gamma = 0.5
@@ -46,26 +46,31 @@ dropCIter = 15000
 incBatchFactor = 2
 incBatchIter = 100000
 printIter = 2000
+
+train_errors = zeros(0)
+test_errors = zeros(0)
+iters = zeros(0)
+
 for iter in 1:maxIter
 
 	# Generate perturbations from Rademacher distribution
 	delta = 2*round.(rand(nParams,1)) .- 1
 
-	# Evaluate mini-batch losses	
+	# Evaluate mini-batch losses
 	batchIndices = sample(1:n,batchSize,replace=false)
 	w_plus = w + c*delta
 	w_minus = w - c*delta
 
-	(f_plus_sum,~) = NeuralNetMulti_backprop(w_plus,X[batchIndices[1],:],Y[batchIndices[1],:],k,nHidden)	
+	f_plus_sum = NeuralNetMulti_forwardprop(w_plus,X[batchIndices[1],:],Y[batchIndices[1],:],k,nHidden)
 	for i in 2:batchSize
-		(f_plus,~) = NeuralNetMulti_backprop(w_plus,X[batchIndices[i],:],Y[batchIndices[i],:],k,nHidden)
+		f_plus = NeuralNetMulti_forwardprop(w_plus,X[batchIndices[i],:],Y[batchIndices[i],:],k,nHidden)
 		f_plus_sum += f_plus
 	end
 	f_plus_av = (1/batchSize)*f_plus_sum
 
-	(f_minus_sum,~) = NeuralNetMulti_backprop(w_minus,X[batchIndices[1],:],Y[batchIndices[1],:],k,nHidden)	
+	f_minus_sum = NeuralNetMulti_forwardprop(w_minus,X[batchIndices[1],:],Y[batchIndices[1],:],k,nHidden)
 	for i in 2:batchSize
-		(f_minus,~) = NeuralNetMulti_backprop(w_minus,X[batchIndices[i],:],Y[batchIndices[i],:],k,nHidden)
+		f_minus = NeuralNetMulti_forwardprop(w_minus,X[batchIndices[i],:],Y[batchIndices[i],:],k,nHidden)
 		f_minus_sum += f_minus
 	end
 	f_minus_av = (1/batchSize)*f_minus_sum
@@ -80,6 +85,10 @@ for iter in 1:maxIter
 		yhat = NeuralNet_predict(w,Xtest,k,nHidden)
 		train_error = sum(ypred .!= y)/n; test_error = sum(yhat .!= ytest)/t
 		@printf("Training iteration = %d, train error = %0.4f, test error = %0.4f, step size = %f, batch size = %d\n",iter,train_error,test_error,stepSize,batchSize)
+		# Store current train/test errors and iter number for plotting.
+		append!(iters, iter)
+		append!(train_errors, train_error)
+		append!(test_errors, test_error)
 	end
 
 	# Drop step size (learning rate) according to schedule
@@ -98,4 +107,18 @@ for iter in 1:maxIter
 	end
 end
 
+# Save results.
+save("results/spsa_results.jld", "iters", iters, "train_errors", train_errors, "test_errors", test_errors)
 
+# Load and plot results.
+results = load("results/spsa_results.jld")
+iters = results["iters"]
+train_errors = results["train_errors"]
+test_errors = results["test_errors"]
+fig = figure(figsize=(10.00, 8.00))
+ax = fig.add_subplot(111)
+ax.plot(iters, train_errors, ".")
+ax.set_xlabel("Iterations")
+ax.set_ylabel("Training Error")
+ax.set_title("Training Performance of SPSA")
+plt.show()
